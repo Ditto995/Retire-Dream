@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import Link from "next/link"
 import { ArrowRight, Check, TrendingUp } from "lucide-react"
 import { useRetirement } from "@/lib/retirement-context"
@@ -14,7 +15,9 @@ const methods: { id: Method; title: string; desc: string }[] = [
 
 export default function Page() {
   const { page1, setPage1 } = useRetirement()
-  const result = computeNeeded(page1)
+  
+  // 使用 useMemo 確保狀態變更時的計算效能
+  const result = useMemo(() => computeNeeded(page1), [page1])
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -53,8 +56,9 @@ export default function Page() {
               type="button"
               role="switch"
               aria-checked={page1.considerInflation}
+              aria-expanded={page1.considerInflation}
               onClick={() => setPage1("considerInflation", !page1.considerInflation)}
-              className="flex items-center gap-3 text-left"
+              className="flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span
                 className={`flex size-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors ${
@@ -63,7 +67,7 @@ export default function Page() {
                     : "border-input bg-card"
                 }`}
               >
-                {page1.considerInflation ? <Check className="size-3.5" aria-hidden="true" /> : null}
+                {page1.considerInflation && <Check className="size-3.5" aria-hidden="true" />}
               </span>
               <span>
                 <span className="block text-sm font-medium text-foreground">將通膨率考慮進去</span>
@@ -73,7 +77,7 @@ export default function Page() {
               </span>
             </button>
 
-            {page1.considerInflation ? (
+            {page1.considerInflation && (
               <NumberField
                 label="預估年通膨率"
                 value={page1.inflationRate}
@@ -81,7 +85,7 @@ export default function Page() {
                 suffix="%"
                 step={0.1}
               />
-            ) : null}
+            )}
           </div>
 
           {/* 政府年金勾選 */}
@@ -90,8 +94,9 @@ export default function Page() {
               type="button"
               role="switch"
               aria-checked={page1.includePension}
+              aria-expanded={page1.includePension}
               onClick={() => setPage1("includePension", !page1.includePension)}
-              className="flex items-center gap-3 text-left"
+              className="flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span
                 className={`flex size-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors ${
@@ -100,7 +105,7 @@ export default function Page() {
                     : "border-input bg-card"
                 }`}
               >
-                {page1.includePension ? <Check className="size-3.5" aria-hidden="true" /> : null}
+                {page1.includePension && <Check className="size-3.5" aria-hidden="true" />}
               </span>
               <span>
                 <span className="block text-sm font-medium text-foreground">加入政府勞退 / 勞保年金</span>
@@ -110,7 +115,7 @@ export default function Page() {
               </span>
             </button>
 
-            {page1.includePension ? (
+            {page1.includePension && (
               <NumberField
                 label="預計每月可領年金"
                 value={page1.monthlyPension}
@@ -119,22 +124,23 @@ export default function Page() {
                 hint="以今日幣值估算即可，系統會假設年金隨通膨調整。"
                 thousands
               />
-            ) : null}
+            )}
           </div>
 
           {/* 換算方式 */}
           <fieldset className="flex flex-col gap-2.5">
             <legend className="mb-1 text-sm font-medium text-foreground">所需資金換算方式</legend>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
               {methods.map((m) => {
                 const active = page1.method === m.id
                 return (
                   <button
                     key={m.id}
                     type="button"
-                    aria-pressed={active}
+                    role="radio"
+                    aria-checked={active}
                     onClick={() => setPage1("method", m.id)}
-                    className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
+                    className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       active
                         ? "border-primary bg-primary/8 ring-1 ring-primary"
                         : "border-border bg-card hover:bg-muted"
@@ -147,7 +153,7 @@ export default function Page() {
               })}
             </div>
 
-            {page1.method === "customRate" ? (
+            {page1.method === "customRate" && (
               <div className="mt-1">
                 <NumberField
                   label="安全提領率"
@@ -158,9 +164,9 @@ export default function Page() {
                   step={0.1}
                 />
               </div>
-            ) : null}
+            )}
 
-            {page1.method === "annuity" ? (
+            {page1.method === "annuity" && (
               <div className="mt-1 grid gap-4 sm:grid-cols-2">
                 <NumberField
                   label="退休後要領幾年"
@@ -177,7 +183,7 @@ export default function Page() {
                   step={0.1}
                 />
               </div>
-            ) : null}
+            )}
           </fieldset>
         </div>
       </section>
@@ -199,7 +205,7 @@ export default function Page() {
             <p className="mt-1 font-mono text-sm text-muted-foreground">約 {formatWan(result.capital)}</p>
           </div>
 
-          {page1.considerInflation ? (
+          {page1.considerInflation && (
             <div className="rounded-lg border border-border bg-card/70 p-3.5">
               <p className="text-xs font-medium text-muted-foreground">實質購買力折算</p>
               <p className="mt-1 text-sm leading-relaxed text-foreground">
@@ -207,7 +213,7 @@ export default function Page() {
                 <span className="font-mono font-medium text-primary">{formatWan(result.capitalReal)}</span> 的價值。
               </p>
             </div>
-          ) : null}
+          )}
 
           <dl className="grid gap-2.5 text-sm">
             <div className="flex items-center justify-between gap-2">
@@ -220,11 +226,11 @@ export default function Page() {
                 {formatTWD(result.monthlyAtRetirement)}
               </dd>
             </div>
-            {page1.includePension ? (
+            {page1.includePension && (
               <>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">政府年金（退休當年）</dt>
-                  <dd className="font-mono font-medium tabular-nums text-positive">
+                  <dd className="font-mono font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
                     − {formatTWD(result.pensionAtRetirement)}
                   </dd>
                 </div>
@@ -235,7 +241,7 @@ export default function Page() {
                   </dd>
                 </div>
               </>
-            ) : null}
+            )}
             <div className="flex items-center justify-between gap-2">
               <dt className="text-muted-foreground">需自備年支出</dt>
               <dd className="font-mono font-medium tabular-nums text-foreground">
@@ -246,7 +252,7 @@ export default function Page() {
 
           <Link
             href="/assets"
-            className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             下一步：加入現有資產
             <ArrowRight className="size-4" aria-hidden="true" />
