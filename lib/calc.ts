@@ -65,61 +65,50 @@ export function computeNeeded(s: Page1State): NeededResult {
   const inflationFactor = Math.pow(1 + inflationRate, years)
   const monthlyAtRetirement = monthlyToday * inflationFactor
 
-  const annualAtRetirement = monthlyAtRetirement * 12
+  // 政府年金（勞退/勞保）以今日幣值輸入，假設隨通膨調整，膨脹到退休當年。
+  const pensionToday = s.includePension ? Math.max(0, num(s.monthlyPension)) : 0
+  const pensionAtRetirement = pensionToday * inflationFactor
 
-  let grossCapital = 0
+  // 投資組合真正需要支應的月所得 = 期望所得 − 政府年金。
+  const netMonthlyAtRetirement = Math.max(0, monthlyAtRetirement - pensionAtRetirement)
+  const annualAtRetirement = netMonthlyAtRetirement * 12
+
+  let capital = 0
   let methodLabel = ""
 
   if (s.method === "rule4") {
-    grossCapital = annualAtRetirement / 0.04
+    capital = annualAtRetirement / 0.04
     methodLabel = "4% 法則（年支出 × 25）"
   } else if (s.method === "customRate") {
     const rate = Math.max(0.1, num(s.withdrawalRate, 4)) / 100
-    grossCapital = annualAtRetirement / 0.04
+    capital = annualAtRetirement / rate
     methodLabel = `安全提領率 ${num(s.withdrawalRate, 4)}%`
   } else {
     const duration = Math.max(1, num(s.retirementDuration, 30))
     const r = Math.max(0, num(s.retirementReturn, 4)) / 100
     if (r === 0) {
-       grossCapital= annualAtRetirement * duration
+      capital = annualAtRetirement * duration
     } else {
       // present value of a level annuity paid over `duration` years
-      grossCapital = annualAtRetirement * ((1 - Math.pow(1 + r, -duration)) / r)
+      capital = annualAtRetirement * ((1 - Math.pow(1 + r, -duration)) / r)
     }
     methodLabel = `領完 ${duration} 年（退休後報酬 ${num(s.retirementReturn, 4)}%）`
   }
 
-  const pensionApplied =
-  s.includePension
-    ? Math.max(0, num(s.pensionLumpSum))
-    : 0
-
-const capital =
-  Math.max(0, grossCapital - pensionApplied)
-
-const capitalReal =
-  inflationFactor > 0
-    ? capital / inflationFactor
-    : capital
+  const capitalReal = inflationFactor > 0 ? capital / inflationFactor : capital
 
   return {
-  years,
-  inflationRate,
-  monthlyToday,
-  monthlyAtRetirement,
-
-  annualAtRetirement,
-
-  grossCapital,
-
-  pensionApplied,
-
-  capital,
-
-  capitalReal,
-
-  methodLabel,
-}
+    years,
+    inflationRate,
+    monthlyToday,
+    monthlyAtRetirement,
+    pensionAtRetirement,
+    netMonthlyAtRetirement,
+    annualAtRetirement,
+    capital,
+    capitalReal,
+    methodLabel,
+  }
 }
 
 export interface CategoryProjection {
