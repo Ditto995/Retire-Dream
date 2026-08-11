@@ -125,38 +125,6 @@ export default function Page() {
                   hint="填入勞動部試算表出來的「預估可累積退休金及收益」或個人估算總額。"
                   thousands
                 />
-
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-medium text-muted-foreground">金額計算方式</span>
-                  <div className="flex flex-col gap-2">
-                    <label className="flex items-start gap-2 text-xs text-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="pensionIsTodayValue"
-                        checked={!page1.pensionIsTodayValue}
-                        onChange={() => setPage1("pensionIsTodayValue", false)}
-                        className="mt-0.5"
-                      />
-                      <span>
-                        <strong className="font-medium text-foreground">勞動部試算表金額（未來數字）</strong>
-                        <span className="block text-muted-foreground">已包含試算年限，直接作為退休當年的名目金額折抵，不重複算通膨。</span>
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-2 text-xs text-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="pensionIsTodayValue"
-                        checked={page1.pensionIsTodayValue}
-                        onChange={() => setPage1("pensionIsTodayValue", true)}
-                        className="mt-0.5"
-                      />
-                      <span>
-                        <strong className="font-medium text-foreground">今日購買力</strong>
-                        <span className="block text-muted-foreground">計算時會依照你設定的年通膨率膨脹至退休當年的金額。</span>
-                      </span>
-                    </label>
-                  </div>
-                </div>
               </div>
             )}
           </div>

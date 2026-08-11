@@ -8,8 +8,6 @@ export interface Page1State {
   includePension: boolean
   /** Lump-sum retirement fund total (e.g. 勞退新制試算表的「預估可累積退休金及收益」). */
   pensionLumpSum: string
-  /** true = 今日幣值（退休時需隨通膨膨脹）；false = 已是退休當年的名目金額（如勞動部試算表，不再計算通膨膨脹） */
-  pensionIsTodayValue: boolean
   method: Method
   withdrawalRate: string
   retirementDuration: string
@@ -92,16 +90,10 @@ export function computeNeeded(s: Page1State): NeededResult {
   }
 
   // 2. 計算勞退一次金於退休當年的名目金額 (pensionApplied)
+  // 直接以輸入金額作為退休當年的名目金額折抵（不重複計算通膨）
   let pensionApplied = 0
   if (s.includePension) {
-    const rawLumpSum = Math.max(0, num(s.pensionLumpSum))
-    if (s.pensionIsTodayValue) {
-      // 若輸入為今日幣值，膨脹至退休當年
-      pensionApplied = rawLumpSum * inflationFactor
-    } else {
-      // 若輸入為勞動部試算表出的未來金額，已是名目數字，不重複膨脹
-      pensionApplied = rawLumpSum
-    }
+    pensionApplied = Math.max(0, num(s.pensionLumpSum))
   }
 
   // 3. 計算需自備的退休本金 (名目與實質)
