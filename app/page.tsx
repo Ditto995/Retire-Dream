@@ -15,7 +15,7 @@ const methods: { id: Method; title: string; desc: string }[] = [
 
 export default function Page() {
   const { page1, setPage1 } = useRetirement()
-  
+
   // 使用 useMemo 確保狀態變更時的計算效能
   const result = useMemo(() => computeNeeded(page1), [page1])
 
@@ -110,20 +110,54 @@ export default function Page() {
               <span>
                 <span className="block text-sm font-medium text-foreground">加入政府勞退 / 勞保年金</span>
                 <span className="block text-xs text-muted-foreground">
-                  退休後每月可領的年金，會先扣掉，剩下的才需要自己準備。
+                  折抵退休當年可領取的累積退休金總額。
                 </span>
               </span>
             </button>
 
             {page1.includePension && (
-              <NumberField
-                label="預計每月可領年金"
-                value={page1.monthlyPension}
-                onChange={(v) => setPage1("monthlyPension", v)}
-                suffix="元 / 月"
-                hint="以今日幣值估算即可，系統會假設年金隨通膨調整。"
-                thousands
-              />
+              <div className="mt-2 flex flex-col gap-4 border-t border-border/60 pt-3">
+                <NumberField
+                  label="預估退休金總額"
+                  value={page1.pensionLumpSum}
+                  onChange={(v) => setPage1("pensionLumpSum", v)}
+                  suffix="元"
+                  hint="填入勞動部試算表出來的「預估可累積退休金及收益」或個人估算總額。"
+                  thousands
+                />
+
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">金額計算方式</span>
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-start gap-2 text-xs text-foreground cursor-pointer">
+                      <input
+                        type="radio"
+                        name="pensionIsTodayValue"
+                        checked={!page1.pensionIsTodayValue}
+                        onChange={() => setPage1("pensionIsTodayValue", false)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <strong className="font-medium text-foreground">勞動部試算表金額（未來數字）</strong>
+                        <span className="block text-muted-foreground">已包含試算年限，直接作為退休當年的名目金額折抵，不重複算通膨。</span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 text-xs text-foreground cursor-pointer">
+                      <input
+                        type="radio"
+                        name="pensionIsTodayValue"
+                        checked={page1.pensionIsTodayValue}
+                        onChange={() => setPage1("pensionIsTodayValue", true)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <strong className="font-medium text-foreground">今日購買力</strong>
+                        <span className="block text-muted-foreground">計算時會依照你設定的年通膨率膨脹至退休當年的金額。</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -194,7 +228,7 @@ export default function Page() {
           <div className="flex items-center gap-2 text-primary">
             <TrendingUp className="size-4" aria-hidden="true" />
             <h2 id="result-title" className="text-sm font-medium">
-              退休當年需要累積的資金
+              退休當年需自備的資金缺口
             </h2>
           </div>
 
@@ -221,31 +255,29 @@ export default function Page() {
               <dd className="text-right font-medium text-foreground">{result.methodLabel}</dd>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">退休當年月所得</dt>
+              <dt className="text-muted-foreground">退休當年月所得需求</dt>
               <dd className="font-mono font-medium tabular-nums text-foreground">
                 {formatTWD(result.monthlyAtRetirement)}
               </dd>
             </div>
-            {page1.includePension && (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-muted-foreground">政府年金（退休當年）</dt>
-                  <dd className="font-mono font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
-                    − {formatTWD(result.pensionAtRetirement)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-muted-foreground">需自備月所得</dt>
-                  <dd className="font-mono font-medium tabular-nums text-foreground">
-                    {formatTWD(result.netMonthlyAtRetirement)}
-                  </dd>
-                </div>
-              </>
-            )}
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-muted-foreground">需自備年支出</dt>
+              <dt className="text-muted-foreground">目標總本金需求</dt>
               <dd className="font-mono font-medium tabular-nums text-foreground">
-                {formatTWD(result.annualAtRetirement)}
+                {formatTWD(result.grossCapital)}
+              </dd>
+            </div>
+            {page1.includePension && (
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">政府退休金折抵</dt>
+                <dd className="font-mono font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
+                  − {formatTWD(result.pensionApplied)}
+                </dd>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2 font-medium">
+              <dt className="text-foreground">需自備總本金</dt>
+              <dd className="font-mono tabular-nums text-primary">
+                {formatTWD(result.capital)}
               </dd>
             </div>
           </dl>
