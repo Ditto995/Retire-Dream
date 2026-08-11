@@ -8,8 +8,6 @@ export interface Page1State {
   includePension: boolean
   /** Lump-sum retirement fund total (e.g. 勞退新制試算表的「預估可累積退休金及收益」). */
   pensionLumpSum: string
-  /** true = the amount is in today's dollars and must be inflated to retirement; false = it is already the retirement-year value. */
-  pensionIsTodayValue: boolean
   method: Method
   withdrawalRate: string
   retirementDuration: string
@@ -63,10 +61,12 @@ export function computeNeeded(s: Page1State): NeededResult {
   const inflationRate = s.considerInflation ? Math.max(0, num(s.inflationRate)) / 100 : 0
 
   const inflationFactor = Math.pow(1 + inflationRate, years)
+  
+  // 退休當年每月生活費需求（名目）與全年需求
   const monthlyAtRetirement = monthlyToday * inflationFactor
-
   const annualAtRetirement = monthlyAtRetirement * 12
 
+  // 1. 先計算「尚未扣除勞退」前的退休總本金需求 (grossCapital)
   let grossCapital = 0
   let methodLabel = ""
 
@@ -75,13 +75,13 @@ export function computeNeeded(s: Page1State): NeededResult {
     methodLabel = "4% 法則（年支出 × 25）"
   } else if (s.method === "customRate") {
     const rate = Math.max(0.1, num(s.withdrawalRate, 4)) / 100
-    grossCapital = annualAtRetirement / 0.04
+    grossCapital = annualAtRetirement / rate
     methodLabel = `安全提領率 ${num(s.withdrawalRate, 4)}%`
   } else {
     const duration = Math.max(1, num(s.retirementDuration, 30))
     const r = Math.max(0, num(s.retirementReturn, 4)) / 100
     if (r === 0) {
-       grossCapital= annualAtRetirement * duration
+      grossCapital = annualAtRetirement * duration
     } else {
       // present value of a level annuity paid over `duration` years
       grossCapital = annualAtRetirement * ((1 - Math.pow(1 + r, -duration)) / r)
@@ -89,37 +89,29 @@ export function computeNeeded(s: Page1State): NeededResult {
     methodLabel = `領完 ${duration} 年（退休後報酬 ${num(s.retirementReturn, 4)}%）`
   }
 
-  const pensionApplied =
-  s.includePension
-    ? Math.max(0, num(s.pensionLumpSum))
-    : 0
+  // 2. 計算勞退一次金於退休當年的名目金額 (pensionApplied)
+  // 直接以輸入金額作為退休當年的名目金額折抵（不重複計算通膨）
+  let pensionApplied = 0
+  if (s.includePension) {
+    pensionApplied = Math.max(0, num(s.pensionLumpSum))
+  }
 
-const capital =
-  Math.max(0, grossCapital - pensionApplied)
-
-const capitalReal =
-  inflationFactor > 0
-    ? capital / inflationFactor
-    : capital
+  // 3. 計算需自備的退休本金 (名目與實質)
+  const capital = Math.max(0, grossCapital - pensionApplied)
+  const capitalReal = inflationFactor > 0 ? capital / inflationFactor : capital
 
   return {
-  years,
-  inflationRate,
-  monthlyToday,
-  monthlyAtRetirement,
-
-  annualAtRetirement,
-
-  grossCapital,
-
-  pensionApplied,
-
-  capital,
-
-  capitalReal,
-
-  methodLabel,
-}
+    years,
+    inflationRate,
+    monthlyToday,
+    monthlyAtRetirement,
+    annualAtRetirement,
+    grossCapital,
+    pensionApplied,
+    capital,
+    capitalReal,
+    methodLabel,
+  }
 }
 
 export interface CategoryProjection {

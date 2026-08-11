@@ -21,7 +21,8 @@ const defaultPage1: Page1State = {
   considerInflation: true,
   inflationRate: "2.5",
   includePension: false,
-  monthlyPension: "20000",
+  pensionLumpSum: "0",         // 替換原本的 monthlyPension，預設改為一次金金額
+  pensionIsTodayValue: false,   // 預設為 false（即勞動部試算表出來的未來名目金額）
   method: "rule4",
   withdrawalRate: "4",
   retirementDuration: "30",
