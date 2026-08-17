@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "tsc lib/calc.ts --target ES2020 --module commonjs --moduleResolution node --outDir .test-dist --esModuleInterop --skipLibCheck && node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

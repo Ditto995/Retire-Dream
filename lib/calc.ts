@@ -32,6 +32,134 @@ export interface Page2State {
   sip: SipPlan
 }
 
+export type Page1ValidationErrors = Partial<Record<keyof Page1State, string>>
+
+export interface Page2ValidationErrors {
+  growth: Partial<Record<keyof AssetCategory, string>>
+  dividend: Partial<Record<keyof AssetCategory, string>>
+  balanced: Partial<Record<keyof AssetCategory, string>>
+  sip: Partial<Record<keyof SipPlan, string>>
+}
+
+interface NumberRule {
+  label: string
+  min?: number
+  max?: number
+  integer?: boolean
+  greaterThan?: number
+}
+
+function validateNumber(value: string, rule: NumberRule): string | undefined {
+  if (value.trim() === "") return `請填寫${rule.label}`
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return `${rule.label}必須是有效數字`
+  if (rule.integer && !Number.isInteger(parsed)) return `${rule.label}必須是整數`
+  if (rule.greaterThan !== undefined && parsed <= rule.greaterThan) {
+    return `${rule.label}必須大於 ${rule.greaterThan}`
+  }
+  if (rule.min !== undefined && parsed < rule.min) return `${rule.label}不可低於 ${rule.min}`
+  if (rule.max !== undefined && parsed > rule.max) return `${rule.label}不可高於 ${rule.max}`
+
+  return undefined
+}
+
+export function validatePage1(s: Page1State): Page1ValidationErrors {
+  const errors: Page1ValidationErrors = {
+    yearsToRetirement: validateNumber(s.yearsToRetirement, {
+      label: "退休年數",
+      min: 0,
+      max: 80,
+      integer: true,
+    }),
+    monthlyIncome: validateNumber(s.monthlyIncome, {
+      label: "每月所得需求",
+      greaterThan: 0,
+    }),
+  }
+
+  if (s.considerInflation) {
+    errors.inflationRate = validateNumber(s.inflationRate, {
+      label: "年通膨率",
+      min: 0,
+      max: 20,
+    })
+  }
+
+  if (s.includePension) {
+    errors.pensionLumpSum = validateNumber(s.pensionLumpSum, {
+      label: "勞退一次金",
+      min: 0,
+    })
+  }
+
+  if (s.method === "customRate") {
+    errors.withdrawalRate = validateNumber(s.withdrawalRate, {
+      label: "安全提領率",
+      min: 0.1,
+      max: 20,
+    })
+  }
+
+  if (s.method === "annuity") {
+    errors.retirementDuration = validateNumber(s.retirementDuration, {
+      label: "退休後領取年數",
+      min: 1,
+      max: 80,
+      integer: true,
+    })
+    errors.retirementReturn = validateNumber(s.retirementReturn, {
+      label: "退休後資金報酬率",
+      min: 0,
+      max: 30,
+    })
+  }
+
+  return Object.fromEntries(Object.entries(errors).filter(([, message]) => message))
+}
+
+function validateAssetCategory(category: AssetCategory, label: string) {
+  return {
+    amount: validateNumber(category.amount, { label: `${label}目前金額`, min: 0 }),
+    returnRate: validateNumber(category.returnRate, {
+      label: `${label}預期年報酬率`,
+      min: 0,
+      max: 30,
+    }),
+  }
+}
+
+export function validatePage2(s: Page2State): Page2ValidationErrors {
+  return {
+    growth: validateAssetCategory(s.growth, "市值型資產"),
+    dividend: validateAssetCategory(s.dividend, "高股息資產"),
+    balanced: validateAssetCategory(s.balanced, "多元資產"),
+    sip: {
+      aReturn: validateNumber(s.sip.aReturn, {
+        label: "積極標的年報酬率",
+        min: 0,
+        max: 30,
+      }),
+      bReturn: validateNumber(s.sip.bReturn, {
+        label: "穩健標的年報酬率",
+        min: 0,
+        max: 30,
+      }),
+      allocationA: validateNumber(s.sip.allocationA, {
+        label: "積極標的分配比例",
+        min: 0,
+        max: 100,
+      }),
+    },
+  }
+}
+
+export function hasValidationErrors(errors: object): boolean {
+  return Object.values(errors).some((value) =>
+    typeof value === "object" && value !== null ? hasValidationErrors(value) : Boolean(value),
+  )
+}
+
 /** Parse a numeric input string, returning a fallback when empty/invalid. */
 export function num(value: string, fallback = 0): number {
   const n = Number.parseFloat(value)
@@ -144,12 +272,17 @@ export interface AssetsResult {
   requiredMonthlySip: number
 }
 
-/** Monthly contribution needed to accumulate `target` over `years` at annual `rate`. */
-function requiredMonthlyForTarget(target: number, rate: number, years: number): number {
+/**
+ * End-of-month contribution needed to accumulate `target` over `years`.
+ * `rate` is an effective annual return converted to an effective monthly rate.
+ */
+export function requiredMonthlyForTarget(target: number, rate: number, years: number): number {
   if (target <= 0 || years <= 0) return 0
-  if (rate === 0) return target / (12 * years)
-  const factor = (Math.pow(1 + rate, years) - 1) / rate
-  return target / (12 * factor)
+  const months = years * 12
+  if (rate === 0) return target / months
+  const monthlyRate = Math.pow(1 + rate, 1 / 12) - 1
+  const futureValueFactor = (Math.pow(1 + monthlyRate, months) - 1) / monthlyRate
+  return target / futureValueFactor
 }
 
 function projectCategory(c: AssetCategory, defaultReturn: number, years: number): CategoryProjection {

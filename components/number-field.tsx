@@ -9,7 +9,9 @@ interface NumberFieldProps {
   suffix?: string
   placeholder?: string
   hint?: string
+  error?: string
   min?: number
+  max?: number
   step?: number
   /** Display the value with thousands separators (for money amounts). */
   thousands?: boolean
@@ -31,11 +33,16 @@ export function NumberField({
   suffix,
   placeholder,
   hint,
+  error,
   min = 0,
+  max,
   step,
   thousands = false,
 }: NumberFieldProps) {
   const id = useId()
+  const hintId = hint ? `${id}-hint` : undefined
+  const errorId = error ? `${id}-error` : undefined
+  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined
 
   const inputProps = thousands
     ? {
@@ -49,6 +56,7 @@ export function NumberField({
         type: "number" as const,
         inputMode: "decimal" as const,
         min,
+        max,
         step,
         value,
         onChange: (e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
@@ -59,12 +67,21 @@ export function NumberField({
       <label htmlFor={id} className="text-sm font-medium text-foreground">
         {label}
       </label>
-      <div className="flex items-stretch overflow-hidden rounded-lg border border-input bg-card focus-within:ring-2 focus-within:ring-ring/40">
+      <div
+        className={`flex items-stretch overflow-hidden rounded-lg border bg-card focus-within:ring-2 focus-within:ring-ring/40 ${
+          error ? "border-destructive/60" : "border-input"
+        }`}
+      >
         <input
           id={id}
           placeholder={placeholder}
+          aria-describedby={describedBy}
+          aria-invalid={Boolean(error)}
+          aria-required="true"
           {...inputProps}
-          className="w-full bg-transparent px-3 py-2.5 font-mono text-base tabular-nums text-foreground outline-none placeholder:text-muted-foreground/60"
+          className={`w-full bg-transparent px-3 py-2.5 font-mono text-base tabular-nums text-foreground outline-none placeholder:text-muted-foreground/60 ${
+            error ? "bg-destructive/5" : ""
+          }`}
         />
         {suffix ? (
           <span className="flex shrink-0 items-center border-l border-input bg-muted px-3 text-sm text-muted-foreground">
@@ -72,7 +89,16 @@ export function NumberField({
           </span>
         ) : null}
       </div>
-      {hint ? <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p> : null}
+      {hint ? (
+        <p id={hintId} className="text-xs leading-relaxed text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} role="alert" className="text-xs leading-relaxed text-destructive">
+          {error}
+        </p>
+      ) : null}
     </div>
   )
 }

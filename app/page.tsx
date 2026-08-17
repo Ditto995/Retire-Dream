@@ -4,7 +4,14 @@ import { useMemo } from "react"
 import Link from "next/link"
 import { ArrowRight, Check, TrendingUp } from "lucide-react"
 import { useRetirement } from "@/lib/retirement-context"
-import { computeNeeded, formatTWD, formatWan, type Method } from "@/lib/calc"
+import {
+  computeNeeded,
+  formatTWD,
+  formatWan,
+  hasValidationErrors,
+  validatePage1,
+  type Method,
+} from "@/lib/calc"
 import { NumberField } from "@/components/number-field"
 
 const methods: { id: Method; title: string; desc: string }[] = [
@@ -18,6 +25,8 @@ export default function Page() {
 
   // 使用 useMemo 確保狀態變更時的計算效能
   const result = useMemo(() => computeNeeded(page1), [page1])
+  const validationErrors = useMemo(() => validatePage1(page1), [page1])
+  const hasErrors = hasValidationErrors(validationErrors)
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -40,6 +49,8 @@ export default function Page() {
             onChange={(v) => setPage1("yearsToRetirement", v)}
             suffix="年"
             step={1}
+            max={80}
+            error={validationErrors.yearsToRetirement}
           />
           <NumberField
             label="希望每月有多少所得"
@@ -48,6 +59,7 @@ export default function Page() {
             suffix="元 / 月"
             hint="以「現在的物價」來想像你想要的生活水準即可。"
             thousands
+            error={validationErrors.monthlyIncome}
           />
 
           {/* 通膨勾選 */}
@@ -84,6 +96,8 @@ export default function Page() {
                 onChange={(v) => setPage1("inflationRate", v)}
                 suffix="%"
                 step={0.1}
+                max={20}
+                error={validationErrors.inflationRate}
               />
             )}
           </div>
@@ -124,6 +138,7 @@ export default function Page() {
                   suffix="元"
                   hint="填入退休當年預估可領的一次金；請勿填入勞保月領年金。"
                   thousands
+                  error={validationErrors.pensionLumpSum}
                 />
               </div>
             )}
@@ -163,7 +178,10 @@ export default function Page() {
                   onChange={(v) => setPage1("withdrawalRate", v)}
                   suffix="%"
                   hint="越低越保守（需要更多本金）。常見範圍 3%～5%。"
+                  min={0.1}
+                  max={20}
                   step={0.1}
+                  error={validationErrors.withdrawalRate}
                 />
               </div>
             )}
@@ -175,14 +193,19 @@ export default function Page() {
                   value={page1.retirementDuration}
                   onChange={(v) => setPage1("retirementDuration", v)}
                   suffix="年"
+                  min={1}
+                  max={80}
                   step={1}
+                  error={validationErrors.retirementDuration}
                 />
                 <NumberField
                   label="退休後資金報酬率"
                   value={page1.retirementReturn}
                   onChange={(v) => setPage1("retirementReturn", v)}
                   suffix="%"
+                  max={30}
                   step={0.1}
+                  error={validationErrors.retirementReturn}
                 />
               </div>
             )}
@@ -192,7 +215,17 @@ export default function Page() {
 
       {/* 結果 */}
       <section aria-labelledby="result-title" className="lg:sticky lg:top-6 lg:self-start">
-        <div className="flex flex-col gap-5 rounded-xl border border-primary/25 bg-primary/5 p-5">
+        {hasErrors ? (
+          <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+            <h2 id="result-title" className="text-sm font-semibold text-destructive">
+              請先修正輸入內容
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-foreground">
+              有欄位空白或超出合理範圍，結果已暫停更新。請依欄位下方提示修正後再繼續。
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-5 rounded-xl border border-primary/25 bg-primary/5 p-5">
           <div className="flex items-center gap-2 text-primary">
             <TrendingUp className="size-4" aria-hidden="true" />
             <h2 id="result-title" className="text-sm font-medium">
@@ -257,7 +290,8 @@ export default function Page() {
             下一步：加入現有資產
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
-        </div>
+          </div>
+        )}
       </section>
     </main>
   )

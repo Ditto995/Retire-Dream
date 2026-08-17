@@ -3,7 +3,14 @@
 import Link from "next/link"
 import { ArrowLeft, CircleCheck, TriangleAlert, Wallet } from "lucide-react"
 import { useRetirement } from "@/lib/retirement-context"
-import { computeAssets, formatTWD, formatWan } from "@/lib/calc"
+import {
+  computeAssets,
+  formatTWD,
+  formatWan,
+  hasValidationErrors,
+  validatePage1,
+  validatePage2,
+} from "@/lib/calc"
 import { NumberField } from "@/components/number-field"
 
 function SipLegRow({ label, monthly }: { label: string; monthly: number }) {
@@ -42,6 +49,16 @@ const categories = [
 export default function AssetsPage() {
   const { page1, page2, setPage2Category, setSip } = useRetirement()
   const result = computeAssets(page1, page2)
+  const page1Errors = validatePage1(page1)
+  const page2Errors = validatePage2(page2)
+  const assetErrors = {
+    growth: page2Errors.growth,
+    dividend: page2Errors.dividend,
+    balanced: page2Errors.balanced,
+  }
+  const sipErrorsMatter = !result.reachedTarget && result.years > 0
+  const hasErrors = hasValidationErrors(page1Errors) || hasValidationErrors(assetErrors)
+  const hasSipErrors = sipErrorsMatter && hasValidationErrors(page2Errors.sip)
 
   return (
     <main className="mx-auto grid max-w-5xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -71,20 +88,23 @@ export default function AssetsPage() {
                   onChange={(v) => setPage2Category(c.key, "amount", v)}
                   suffix="元"
                   thousands
+                  error={page2Errors[c.key].amount}
                 />
                 <NumberField
                   label="預期年報酬"
                   value={page2[c.key].returnRate}
                   onChange={(v) => setPage2Category(c.key, "returnRate", v)}
                   suffix="%"
-                  hint={`未填預設 ${c.defaultReturn}%`}
+                  hint={`建議假設 ${c.defaultReturn}%`}
+                  max={30}
                   step={0.1}
+                  error={page2Errors[c.key].returnRate}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
                 退休當年預估成長為{" "}
                 <span className="font-mono font-medium text-foreground">
-                  {formatTWD(result[c.key].future)}
+                  {hasValidationErrors(page2Errors[c.key]) ? "—" : formatTWD(result[c.key].future)}
                 </span>
               </p>
             </div>
@@ -102,6 +122,17 @@ export default function AssetsPage() {
 
       {/* 結果 */}
       <section aria-labelledby="assets-result-title" className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+        {hasErrors ? (
+          <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+            <h2 id="assets-result-title" className="text-sm font-semibold text-destructive">
+              請先修正輸入內容
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-foreground">
+              有欄位空白或超出合理範圍，結果已暫停更新。請依欄位下方提示修正後再試算。
+            </p>
+          </div>
+        ) : (
+          <>
         {/* 預估財富 vs 目標 */}
         <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 text-primary">
@@ -169,7 +200,7 @@ export default function AssetsPage() {
                 <div>
                   <p className="text-sm font-medium text-foreground">每月還需定期定額</p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    把缺口分配到兩種不同報酬率的標的，分別算出每月投入金額。
+                    把缺口分配到兩種不同報酬率的標的，以每月底投入、有效月報酬率估算。
                   </p>
                 </div>
 
@@ -179,19 +210,29 @@ export default function AssetsPage() {
                     value={page2.sip.aReturn}
                     onChange={(v) => setSip("aReturn", v)}
                     suffix="%"
+                    max={30}
                     step={0.1}
+                    error={page2Errors.sip.aReturn}
                   />
                   <NumberField
                     label="穩健標的年報酬"
                     value={page2.sip.bReturn}
                     onChange={(v) => setSip("bReturn", v)}
                     suffix="%"
+                    max={30}
                     step={0.1}
+                    error={page2Errors.sip.bReturn}
                   />
                 </div>
 
-                {/* 缺口分配比例 */}
-                <div className="flex flex-col gap-2">
+                {hasSipErrors ? (
+                  <p role="alert" className="text-sm leading-relaxed text-destructive">
+                    請先修正報酬率，月投入結果已暫停更新。
+                  </p>
+                ) : (
+                  <>
+                    {/* 缺口分配比例 */}
+                    <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between text-sm">
                     <label htmlFor="alloc" className="font-medium text-foreground">
                       缺口分配
@@ -212,9 +253,9 @@ export default function AssetsPage() {
                     className="w-full accent-primary"
                     aria-label="分配給積極標的的缺口百分比"
                   />
-                </div>
+                    </div>
 
-                <div className="grid gap-2">
+                    <div className="grid gap-2">
                   <SipLegRow
                     label={`積極標的 · ${page2.sip.aReturn || "9.0"}%`}
                     monthly={result.sipA.requiredMonthly}
@@ -234,14 +275,19 @@ export default function AssetsPage() {
                       {formatTWD(result.requiredMonthlySip)}
                     </span>
                   </div>
-                </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
         )}
+          </>
+        )}
 
         <p className="px-1 text-xs leading-relaxed text-muted-foreground">
-          本試算採年複利與簡化假設，僅供規劃參考，不構成投資建議。實際報酬會隨市場波動。
+          資產成長採年複利；定期定額將年報酬換算為有效月報酬率，並假設每月底投入。僅供規劃參考，
+          不構成投資建議。
         </p>
       </section>
     </main>
