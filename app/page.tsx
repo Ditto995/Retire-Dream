@@ -88,7 +88,7 @@ export default function Page() {
             )}
           </div>
 
-          {/* 政府年金勾選 */}
+          {/* 勞退一次金勾選 */}
           <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/40 p-4">
             <button
               type="button"
@@ -108,9 +108,9 @@ export default function Page() {
                 {page1.includePension && <Check className="size-3.5" aria-hidden="true" />}
               </span>
               <span>
-                <span className="block text-sm font-medium text-foreground">加入政府勞退 / 勞保年金</span>
+                <span className="block text-sm font-medium text-foreground">加入勞退一次金</span>
                 <span className="block text-xs text-muted-foreground">
-                  折抵退休當年可領取的累積退休金總額。
+                  以退休當年預估可領的一次金，折抵所需退休本金。
                 </span>
               </span>
             </button>
@@ -118,11 +118,11 @@ export default function Page() {
             {page1.includePension && (
               <div className="mt-2 flex flex-col gap-4 border-t border-border/60 pt-3">
                 <NumberField
-                  label="預估退休金總額"
+                  label="預估勞退一次金"
                   value={page1.pensionLumpSum}
                   onChange={(v) => setPage1("pensionLumpSum", v)}
                   suffix="元"
-                  hint="填入勞動部試算表出來的「預估可累積退休金及收益」或個人估算總額。"
+                  hint="填入退休當年預估可領的一次金；請勿填入勞保月領年金。"
                   thousands
                 />
               </div>
@@ -236,7 +236,7 @@ export default function Page() {
             </div>
             {page1.includePension && (
               <div className="flex items-center justify-between gap-2">
-                <dt className="text-muted-foreground">政府退休金折抵</dt>
+                <dt className="text-muted-foreground">勞退一次金折抵</dt>
                 <dd className="font-mono font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
                   − {formatTWD(result.pensionApplied)}
                 </dd>

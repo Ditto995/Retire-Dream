@@ -6,7 +6,7 @@ export interface Page1State {
   considerInflation: boolean
   inflationRate: string
   includePension: boolean
-  /** Lump-sum retirement fund total (e.g. 勞退新制試算表的「預估可累積退休金及收益」). */
+  /** 勞退一次金於退休當年的預估名目金額。 */
   pensionLumpSum: string
   method: Method
   withdrawalRate: string
@@ -46,7 +46,7 @@ export interface NeededResult {
   annualAtRetirement: number
   /** Capital needed from the income requirement alone, before any pension offset. */
   grossCapital: number
-  /** Lump-sum government retirement fund applied at the retirement year (nominal). */
+  /** 於退休當年用來折抵需求的勞退一次金（名目金額）。 */
   pensionApplied: number
   /** Nominal capital you must accumulate yourself = grossCapital − pensionApplied. */
   capital: number
@@ -89,8 +89,7 @@ export function computeNeeded(s: Page1State): NeededResult {
     methodLabel = `領完 ${duration} 年（退休後報酬 ${num(s.retirementReturn, 4)}%）`
   }
 
-  // 2. 計算勞退一次金於退休當年的名目金額 (pensionApplied)
-  // 直接以輸入金額作為退休當年的名目金額折抵（不重複計算通膨）
+  // 2. 以退休當年的勞退一次金折抵需求（不接受勞保月領年金，也不重複計算通膨）。
   let pensionApplied = 0
   if (s.includePension) {
     pensionApplied = Math.max(0, num(s.pensionLumpSum))

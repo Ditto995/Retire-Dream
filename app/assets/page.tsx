@@ -154,77 +154,89 @@ export default function AssetsPage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-4 border-t border-warning/25 pt-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">每月還需定期定額</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  把缺口分配到兩種不同報酬率的標的，分別算出每月投入金額。
+            {result.years <= 0 ? (
+              <div
+                role="alert"
+                className="border-t border-warning/25 pt-4 text-sm leading-relaxed text-foreground"
+              >
+                <p className="font-medium">已到預計退休時間，無法用未來定期定額補足缺口。</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  請回上一步延後退休時間，或提高目前資產，再重新試算。
                 </p>
               </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <NumberField
-                  label="積極標的年報酬"
-                  value={page2.sip.aReturn}
-                  onChange={(v) => setSip("aReturn", v)}
-                  suffix="%"
-                  step={0.1}
-                />
-                <NumberField
-                  label="穩健標的年報酬"
-                  value={page2.sip.bReturn}
-                  onChange={(v) => setSip("bReturn", v)}
-                  suffix="%"
-                  step={0.1}
-                />
-              </div>
-
-              {/* 缺口分配比例 */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between text-sm">
-                  <label htmlFor="alloc" className="font-medium text-foreground">
-                    缺口分配
-                  </label>
-                  <span className="font-mono tabular-nums text-muted-foreground">
-                    積極 {Math.round(result.sipA.allocation * 100)}% ／ 穩健{" "}
-                    {Math.round(result.sipB.allocation * 100)}%
-                  </span>
+            ) : (
+              <div className="flex flex-col gap-4 border-t border-warning/25 pt-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">每月還需定期定額</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    把缺口分配到兩種不同報酬率的標的，分別算出每月投入金額。
+                  </p>
                 </div>
-                <input
-                  id="alloc"
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={page2.sip.allocationA}
-                  onChange={(e) => setSip("allocationA", e.target.value)}
-                  className="w-full accent-primary"
-                  aria-label="分配給積極標的的缺口百分比"
-                />
-              </div>
 
-              <div className="grid gap-2">
-                <SipLegRow
-                  label={`積極標的 · ${page2.sip.aReturn || "9.0"}%`}
-                  monthly={result.sipA.requiredMonthly}
-                />
-                <SipLegRow
-                  label={`穩健標的 · ${page2.sip.bReturn || "4.0"}%`}
-                  monthly={result.sipB.requiredMonthly}
-                />
-                <div className="mt-1 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/8 p-4">
-                  <span className="text-sm font-medium text-foreground">
-                    每月合計投入
-                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                      持續 {result.years} 年補足缺口
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <NumberField
+                    label="積極標的年報酬"
+                    value={page2.sip.aReturn}
+                    onChange={(v) => setSip("aReturn", v)}
+                    suffix="%"
+                    step={0.1}
+                  />
+                  <NumberField
+                    label="穩健標的年報酬"
+                    value={page2.sip.bReturn}
+                    onChange={(v) => setSip("bReturn", v)}
+                    suffix="%"
+                    step={0.1}
+                  />
+                </div>
+
+                {/* 缺口分配比例 */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <label htmlFor="alloc" className="font-medium text-foreground">
+                      缺口分配
+                    </label>
+                    <span className="font-mono tabular-nums text-muted-foreground">
+                      積極 {Math.round(result.sipA.allocation * 100)}% ／ 穩健{" "}
+                      {Math.round(result.sipB.allocation * 100)}%
                     </span>
-                  </span>
-                  <span className="font-mono text-2xl font-semibold tabular-nums text-primary">
-                    {formatTWD(result.requiredMonthlySip)}
-                  </span>
+                  </div>
+                  <input
+                    id="alloc"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={page2.sip.allocationA}
+                    onChange={(e) => setSip("allocationA", e.target.value)}
+                    className="w-full accent-primary"
+                    aria-label="分配給積極標的的缺口百分比"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <SipLegRow
+                    label={`積極標的 · ${page2.sip.aReturn || "9.0"}%`}
+                    monthly={result.sipA.requiredMonthly}
+                  />
+                  <SipLegRow
+                    label={`穩健標的 · ${page2.sip.bReturn || "4.0"}%`}
+                    monthly={result.sipB.requiredMonthly}
+                  />
+                  <div className="mt-1 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/8 p-4">
+                    <span className="text-sm font-medium text-foreground">
+                      每月合計投入
+                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                        持續 {result.years} 年補足缺口
+                      </span>
+                    </span>
+                    <span className="font-mono text-2xl font-semibold tabular-nums text-primary">
+                      {formatTWD(result.requiredMonthlySip)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
